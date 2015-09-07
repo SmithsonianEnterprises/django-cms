@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import json
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from django.utils import simplejson
 from django.contrib.sites.models import Site
 
 from cms.models import Page
@@ -18,8 +19,8 @@ def jsonify_request(response):
          * status: original response status code
          * content: original response content
     """
-    return HttpResponse(simplejson.dumps({'status':response.status_code,'content':response.content}),
-                                content_type="application/json")
+    return HttpResponse(json.dumps({'status':response.status_code,'content':response.content}),
+                        content_type="application/json")
 
 publisher_classes = {
     Page.PUBLISHER_STATE_DIRTY: "publisher_dirty",
@@ -33,24 +34,24 @@ def get_admin_menu_item_context(request, page, filtered=False):
     """
     has_add_page_permission = page.has_add_permission(request)
     has_move_page_permission = page.has_move_page_permission(request)
-    
+
     site = Site.objects.get_current()
     lang = get_language_from_request(request)
     #slug = page.get_slug(language=lang, fallback=True) # why was this here ??
     metadata = ""
     if get_cms_setting('PERMISSION'):
-        # jstree metadata generator 
+        # jstree metadata generator
         md = []
-        
+
         #if not has_add_page_permission:
         if not has_move_page_permission:
             md.append(('valid_children', False))
             md.append(('draggable', False))
         if md:
             # just turn it into simple javascript object
-            metadata = "{" + ", ".join(map(lambda e: "%s: %s" %(e[0], 
+            metadata = "{" + ", ".join(map(lambda e: "%s: %s" %(e[0],
                 isinstance(e[1], bool) and str(e[1]) or e[1].lower() ), md)) + "}"
-        
+
     has_add_on_same_level_permission = False
     opts = Page._meta
     if get_cms_setting('PERMISSION'):
@@ -74,7 +75,7 @@ def get_admin_menu_item_context(request, page, filtered=False):
         'filtered': filtered,
         'metadata': metadata,
         'css_class': css_class,
-        
+
         'has_change_permission': page.has_change_permission(request),
         'has_publish_permission': page.has_publish_permission(request),
         'has_delete_permission': page.has_delete_permission(request),
@@ -97,14 +98,14 @@ def render_admin_menu_item(request, page, template=None):
 
     if not page.pk:
         return HttpResponse(NOT_FOUND_RESPONSE) # Not found - tree will remove item
-        
+
     # languages
     languages = get_language_list(page.site_id)
     context = RequestContext(request, {
         'has_add_permission': permissions.has_page_add_permission(request),
         'site_languages': languages,
     })
-    
+
     filtered = 'filtered' in request.REQUEST
     context.update(get_admin_menu_item_context(request, page, filtered))
     # add mimetype to help out IE
