@@ -3,14 +3,21 @@ from cms.exceptions import DuplicatePlaceholderWarning
 from cms.models import Page
 from cms.templatetags.cms_tags import Placeholder
 from cms.utils.placeholder import validate_placeholder_name
+from cms.utils.compat.dj import force_unicode
 from django.contrib.sites.models import Site, SITE_CACHE
 from django.shortcuts import get_object_or_404
-from django.template import (NodeList, TextNode, VariableNode, 
+from django.template.base import (NodeList, TextNode, VariableNode,
     TemplateSyntaxError)
 from django.template.loader import get_template
-from django.template.loader_tags import (ConstantIncludeNode, ExtendsNode, 
-    BlockNode)
+
+from django.template.loader_tags import ExtendsNode, BlockNode
+try:
+    from django.template.loader_tags import ConstantIncludeNode as IncludeNode
+except ImportError:
+    from django.template.loader_tags import IncludeNode
+
 import warnings
+
 from sekizai.helpers import is_variable_extend_node
 
 def get_page_from_plugin_or_404(cms_plugin):
@@ -40,14 +47,14 @@ def _extend_blocks(extend_node, blocks):
     for node in parent.nodelist.get_nodes_by_type(ExtendsNode):
         _extend_blocks(node, blocks)
         break
-        
+
 def _find_topmost_template(extend_node):
     parent_template = extend_node.get_parent({})
     for node in parent_template.nodelist.get_nodes_by_type(ExtendsNode):
         # Their can only be one extend block in a template, otherwise django raises an exception
         return _find_topmost_template(node)
     # No ExtendsNode
-    return extend_node.get_parent({}) 
+    return extend_node.get_parent({})
 
 def _extend_nodelist(extend_node):
     """
@@ -83,10 +90,17 @@ def _scan_placeholders(nodelist, current_block=None, ignore_blocks=None):
             placeholders.append(node.get_name())
         # if it's a Constant Include Node ({% include "template_name.html" %})
         # scan the child template
-        elif isinstance(node, ConstantIncludeNode):
+        elif isinstance(node, IncludeNode):
             # if there's an error in the to-be-included template, node.template becomes None
             if node.template:
-                placeholders += _scan_placeholders(node.template.nodelist, current_block)
+                # This is required for Django 1.7 but works on older version too
+                # Check if it quacks like a template object, if not
+                # presume is a template path and get the object out of it
+                if not callable(getattr(node.template, 'render', None)):
+                    template = get_template(force_unicode(node.template).strip('"'))
+                else:
+                    template = node.template
+                placeholders += _scan_placeholders(template.nodelist, current_block)
         # handle {% extends ... %} tags
         elif isinstance(node, ExtendsNode):
             placeholders += _extend_nodelist(node)

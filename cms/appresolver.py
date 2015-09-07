@@ -5,7 +5,7 @@ from cms.utils.i18n import force_language, get_language_list
 from cms.models.pagemodel import Page
 
 from django.conf import settings
-from django.conf.urls.defaults import patterns
+from django.conf.urls import patterns
 from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import RegexURLResolver, Resolver404, reverse, \
