@@ -346,7 +346,7 @@ class PageUserForm(UserCreationForm, GenericCmsPermissionForm):
 
     class Meta:
         model = PageUser
-        fields = '__all__
+        fields = '__all__'
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
