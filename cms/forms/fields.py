@@ -31,7 +31,7 @@ class PageSelectFormField(forms.MultiValueField):
             forms.ChoiceField(choices=site_choices, required=False, error_messages={'invalid': errors['invalid_site']}),
             forms.ChoiceField(choices=page_choices, required=False, error_messages={'invalid': errors['invalid_page']}),
         )
-        import ipdb; ipdb.set_trace()
+	kwargs.pop('limit_choices_to')
         super(PageSelectFormField, self).__init__(fields, *args, **kwargs)
 
     def compress(self, data_list):
