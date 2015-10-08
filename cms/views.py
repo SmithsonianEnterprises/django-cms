@@ -16,7 +16,7 @@ from cms.utils.page_resolver import get_fallback_languages_for_page, get_page_fr
 from cms.test_utils.util.context_managers import SettingsOverride
 
 from django.conf import settings
-from django.conf.urls.defaults import patterns
+from django.conf.urls import patterns
 from django.core.urlresolvers import resolve, Resolver404, reverse
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import render_to_response
