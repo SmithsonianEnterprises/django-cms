@@ -827,14 +827,14 @@ class Page(MPTTModel):
         opts = self._meta
         if request.user.is_superuser:
             return True
-        return request.user.has_perm(opts.app_label + '.' + opts.get_change_permission()) and \
+        return request.user.has_perm(opts.app_label + '.change') and \
                self.has_generic_permission(request, "change")
 
     def has_delete_permission(self, request):
         opts = self._meta
         if request.user.is_superuser:
             return True
-        return request.user.has_perm(opts.app_label + '.' + opts.get_delete_permission()) and \
+        return request.user.has_perm(opts.app_label + '.' + 'delete') and \
                self.has_generic_permission(request, "delete")
 
     def has_publish_permission(self, request):
