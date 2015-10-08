@@ -262,7 +262,7 @@ class AdminTestCase(AdminTestsBase):
                     continue
                 if not admin.search_fields:
                     continue
-                url = reverse('admin:cms_%s_changelist' % model._meta.module_name)
+                url = reverse('admin:cms_%s_changelist' % model._meta.model_name)
                 response = self.client.get('%s?q=1' % url)
                 errmsg = response.content
                 self.assertEqual(response.status_code, 200, errmsg)
@@ -323,7 +323,7 @@ class AdminTestCase(AdminTestsBase):
                                        created_by=admin, published=True, parent=second_level_page_top)
         self.assertEquals(Page.objects.all().count(), 4)
 
-        url = reverse('admin:cms_%s_changelist' % Page._meta.module_name)
+        url = reverse('admin:cms_%s_changelist' % Page._meta.model_name)
         request = self.get_request(url)
 
         request.session = {}
@@ -364,7 +364,7 @@ class AdminTestCase(AdminTestsBase):
         third_level_page = create_page('level3', "nav_playground.html", "en",
                                        created_by=admin, published=True, parent=second_level_page_top)
 
-        url = reverse('admin:cms_%s_changelist' % Page._meta.module_name)
+        url = reverse('admin:cms_%s_changelist' % Page._meta.model_name)
         self.client.login(username='admin', password='admin')
         self.client.cookies['djangocms_nodes_open'] = 'page_1%2Cpage_2'
         response = self.client.get(url)
@@ -1160,4 +1160,3 @@ class AdminPageEditContentSizeTests(AdminTestsBase):
                 self.assertEqual(foundcount, 2,
                                  "Username %s appeared %s times in response.content, expected 2 times" % (
                                      USER_NAME, foundcount))
-
