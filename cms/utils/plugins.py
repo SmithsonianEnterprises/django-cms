@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.template.base import (NodeList, TextNode, VariableNode,
     TemplateSyntaxError)
 from django.template.loader import get_template
+from django.template import Context
 
 from django.template.loader_tags import ExtendsNode, BlockNode
 try:
@@ -23,14 +24,16 @@ from sekizai.helpers import is_variable_extend_node
 def get_page_from_plugin_or_404(cms_plugin):
     return get_object_or_404(Page, placeholders=cms_plugin.placeholder)
 
-def _extend_blocks(extend_node, blocks):
+def _extend_blocks(extend_node, blocks, template=None):
     """
     Extends the dictionary `blocks` with *new* blocks in the parent node (recursive)
     """
     # we don't support variable extensions
     if is_variable_extend_node(extend_node):
         return
-    parent = extend_node.get_parent(None)
+    context = Context()
+    context.template = template
+    parent = extend_node.get_parent(context)
     # Search for new blocks
     for node in parent.nodelist.get_nodes_by_type(BlockNode):
         if not node.name in blocks:
@@ -45,18 +48,20 @@ def _extend_blocks(extend_node, blocks):
             block.super = node
     # search for further ExtendsNodes
     for node in parent.nodelist.get_nodes_by_type(ExtendsNode):
-        _extend_blocks(node, blocks)
+        _extend_blocks(node, blocks, template=template)
         break
 
-def _find_topmost_template(extend_node):
-    parent_template = extend_node.get_parent({})
+def _find_topmost_template(extend_node, template=None):
+    context = Context()
+    context.template = template
+    parent_template = extend_node.get_parent(context)
     for node in parent_template.nodelist.get_nodes_by_type(ExtendsNode):
         # Their can only be one extend block in a template, otherwise django raises an exception
-        return _find_topmost_template(node)
+        return _find_topmost_template(node, template=template)
     # No ExtendsNode
-    return extend_node.get_parent({})
+    return extend_node.get_parent(context)
 
-def _extend_nodelist(extend_node):
+def _extend_nodelist(extend_node, template=None):
     """
     Returns a list of placeholders found in the parent template(s) of this
     ExtendsNode
@@ -66,18 +71,18 @@ def _extend_nodelist(extend_node):
         return []
     # This is a dictionary mapping all BlockNode instances found in the template that contains extend_node
     blocks = extend_node.blocks
-    _extend_blocks(extend_node, blocks)
+    _extend_blocks(extend_node, blocks, template=template)
     placeholders = []
 
     for block in blocks.values():
         placeholders += _scan_placeholders(block.nodelist, block, blocks.keys())
 
     # Scan topmost template for placeholder outside of blocks
-    parent_template = _find_topmost_template(extend_node)
+    parent_template = _find_topmost_template(extend_node, template=template)
     placeholders += _scan_placeholders(parent_template.nodelist, None, blocks.keys())
     return placeholders
 
-def _scan_placeholders(nodelist, current_block=None, ignore_blocks=None):
+def _scan_placeholders(nodelist, current_block=None, ignore_blocks=None, original_template=None):
     placeholders = []
     if ignore_blocks is None:
         # List of BlockNode instances to ignore.
@@ -100,10 +105,10 @@ def _scan_placeholders(nodelist, current_block=None, ignore_blocks=None):
                     template = get_template(force_unicode(node.template).strip('"'))
                 else:
                     template = node.template
-                placeholders += _scan_placeholders(template.nodelist, current_block)
+                placeholders += _scan_placeholders(template.template.nodelist, current_block)
         # handle {% extends ... %} tags
         elif isinstance(node, ExtendsNode):
-            placeholders += _extend_nodelist(node)
+            placeholders += _extend_nodelist(node, template=original_template)
         # in block nodes we have to scan for super blocks
         elif isinstance(node, VariableNode) and current_block:
             if node.filter_expression.token == 'block.super':
@@ -134,8 +139,9 @@ def _scan_placeholders(nodelist, current_block=None, ignore_blocks=None):
     return placeholders
 
 def get_placeholders(template):
-    compiled_template = get_template(template)
-    placeholders = _scan_placeholders(compiled_template.nodelist)
+    compiled_template = get_template(template) # Note: Pass down to the context
+    placeholders = _scan_placeholders(compiled_template.template.nodelist,
+                                      original_template=compiled_template.template)
     clean_placeholders = []
     for placeholder in placeholders:
         if placeholder in clean_placeholders:

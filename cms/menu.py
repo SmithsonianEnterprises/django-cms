@@ -33,7 +33,7 @@ def get_visible_pages(request, pages, site=None):
     is_auth_user = request.user.is_authenticated()
     visible_page_ids = []
     restricted_pages = defaultdict(list)
-    page_permissions = PagePermission.objects.filter(can_view=True).select_related('page', 'group__users')
+    page_permissions = PagePermission.objects.filter(can_view=True).select_related('page', 'group')
 
     for perm in page_permissions:
 
@@ -42,7 +42,7 @@ def get_visible_pages(request, pages, site=None):
             continue
         if perm is not None and perm not in restricted_pages[perm.page.pk]:
             # affective restricted pages gathering
-            # using mptt functions 
+            # using mptt functions
             # add the page with the perm itself
             if perm.grant_on in [ACCESS_PAGE, ACCESS_PAGE_AND_CHILDREN, ACCESS_PAGE_AND_DESCENDANTS]:
                 restricted_pages[perm.page.pk].append(perm)
@@ -133,7 +133,7 @@ def get_visible_pages(request, pages, site=None):
                         is_setting_public_staff and request.user.is_staff)
             ):
                 # authenticated user, no restriction and public for all
-                # or 
+                # or
                 # authenticated staff user, no restriction and public for staff
                 to_add = True
             # check group and user memberships to restricted pages
@@ -141,7 +141,7 @@ def get_visible_pages(request, pages, site=None):
                 to_add = True
             elif has_global_perm():
                 to_add = True
-        # anonymous user, no restriction  
+        # anonymous user, no restriction
         elif not is_restricted and is_setting_public_all:
             to_add = True
             # store it
@@ -335,26 +335,26 @@ menu_pool.register_modifier(NavExtender)
 class SoftRootCutter(Modifier):
     """
     Ask evildmp/superdmp if you don't understand softroots!
-    
+
     Softroot description from the docs:
-    
+
         A soft root is a page that acts as the root for a menu navigation tree.
-    
+
         Typically, this will be a page that is the root of a significant new
         section on your site.
-    
+
         When the soft root feature is enabled, the navigation menu for any page
         will start at the nearest soft root, rather than at the real root of
         the site’s page hierarchy.
-    
+
         This feature is useful when your site has deep page hierarchies (and
         therefore multiple levels in its navigation trees). In such a case, you
         usually don’t want to present site visitors with deep menus of nested
         items.
-    
+
         For example, you’re on the page -Introduction to Bleeding-?, so the menu
         might look like this:
-    
+
             School of Medicine
                 Medical Education
                 Departments
@@ -380,12 +380,12 @@ class SoftRootCutter(Modifier):
                 Administration
                 Contact us
                 Impressum
-    
+
         which is frankly overwhelming.
-    
+
         By making -Department of Mediaeval Surgery-? a soft root, the menu
         becomes much more manageable:
-    
+
             Department of Mediaeval Surgery
                 Theory
                 Cures
