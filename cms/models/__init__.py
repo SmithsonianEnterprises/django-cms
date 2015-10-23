@@ -16,8 +16,8 @@ from cms import signals as s_import
 
 
 def validate_settings():
-    if not "django.core.context_processors.request" in d_settings.TEMPLATE_CONTEXT_PROCESSORS:
-        raise ImproperlyConfigured('django-cms needs django.core.context_processors.request in settings.TEMPLATE_CONTEXT_PROCESSORS to work correctly.')
+    if not "django.core.context_processors.request" in d_settings.TEMPLATES[0]['OPTIONS']['context_processors']:
+        raise ImproperlyConfigured('django-cms needs django.core.context_processors.request in TEMPLATES[0][\'OPTIONS\'][\'context_processors\'] to work correctly.')
     if not 'mptt' in d_settings.INSTALLED_APPS:
         raise ImproperlyConfigured('django-cms needs django-mptt installed.')
     if 'cms.middleware.multilingual.MultilingualURLMiddleware' in d_settings.MIDDLEWARE_CLASSES and 'django.middleware.locale.LocaleMiddleware' in d_settings.MIDDLEWARE_CLASSES:
